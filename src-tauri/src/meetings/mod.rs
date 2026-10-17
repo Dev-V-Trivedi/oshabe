@@ -479,21 +479,28 @@ impl Worker {
         }
     }
 
-    fn wait_for_model(&self, tm: &TranscriptionManager) -> bool {
+    /// Wait for the model to finish loading, up to `deadline` if one is given
+    /// (shutdown's own drain budget already bounds how long this may run), or
+    /// 120s otherwise.
+    fn wait_for_model(&self, tm: &TranscriptionManager, deadline: Option<Instant>) -> bool {
         if tm.is_model_loaded() {
             return true;
         }
         tm.initiate_model_load();
-        for _ in 0..240 {
+        let max_wait = deadline
+            .map(|d| d.saturating_duration_since(Instant::now()))
+            .unwrap_or(Duration::from_secs(120));
+        let attempts = max_wait.as_millis() / 500;
+        for _ in 0..attempts {
             if tm.is_model_loaded() {
                 return true;
             }
             std::thread::sleep(Duration::from_millis(500));
         }
-        false
+        tm.is_model_loaded()
     }
 
-    fn flush(&mut self, buf: &mut TrackBuf) {
+    fn flush(&mut self, buf: &mut TrackBuf, deadline: Option<Instant>) {
         let samples = std::mem::take(&mut buf.samples);
         if (samples.len() as f32 / TARGET_RATE as f32) < MIN_SPEECH_SECS
             || rms(&samples) < SILENCE_RMS
@@ -502,7 +509,7 @@ impl Worker {
         }
 
         let tm = self.app.state::<Arc<TranscriptionManager>>();
-        if !self.wait_for_model(&tm) {
+        if !self.wait_for_model(&tm, deadline) {
             self.report("The speech model is not loaded".to_string());
             return;
         }
@@ -615,7 +622,7 @@ fn run_worker(
         if is_paused && !was_paused {
             // Transcribe what was said before the pause.
             for buf in bufs.iter_mut() {
-                worker.flush(buf);
+                worker.flush(buf, None);
             }
         }
         was_paused = is_paused;
@@ -653,7 +660,7 @@ fn run_worker(
         if !is_paused {
             for buf in bufs.iter_mut() {
                 if buf.should_flush(now) {
-                    worker.flush(buf);
+                    worker.flush(buf, None);
                 }
             }
         }
@@ -668,8 +675,11 @@ fn run_worker(
             },
         );
     } else {
+        // Shutting down: cap the model wait to what's left of the drain
+        // budget, not a fresh 120s.
+        let deadline = stop_seen_at.map(|t| t + STOP_DRAIN_BUDGET);
         for buf in bufs.iter_mut() {
-            worker.flush(buf);
+            worker.flush(buf, deadline);
         }
     }
     debug!("Meeting {} worker finished", meeting_id);
