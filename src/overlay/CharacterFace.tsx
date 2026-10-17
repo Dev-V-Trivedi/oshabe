@@ -40,8 +40,10 @@ function draw(
   frame: CharacterFrame,
 ): void {
   const styles = getComputedStyle(canvas);
-  const primary = styles.getPropertyValue("--color-logo-primary").trim() || "#4338ca";
-  const accent = styles.getPropertyValue("--color-logo-accent").trim() || "#ffb224";
+  const primary =
+    styles.getPropertyValue("--color-logo-primary").trim() || "#4338ca";
+  const accent =
+    styles.getPropertyValue("--color-logo-accent").trim() || "#ffb224";
 
   ctx.clearRect(0, 0, SIZE, SIZE);
 

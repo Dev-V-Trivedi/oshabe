@@ -32,10 +32,12 @@
 ## Task 1: Pure character animation logic
 
 **Files:**
+
 - Create: `src/overlay/characterAnimation.ts`
 - Test: `src/overlay/characterAnimation.test.ts`
 
 **Interfaces:**
+
 - Produces: `CharacterPhase` type (`"arming" | "listening" | "working" | "error"`), `CharacterFrame` interface (`{ eyeOpenness: number; antennaGlow: number; tilt: number }`, all fields in `0..1` except `tilt` in `-1..1`), and `computeCharacterFrame(phase: CharacterPhase, level: number, elapsedMs: number): CharacterFrame`. Task 2 consumes all three.
 
 - [ ] **Step 1: Write the failing tests**
@@ -104,9 +106,11 @@ git commit -m "feat: add pure animation logic for the overlay character"
 ## Task 2: `CharacterFace` canvas component
 
 **Files:**
+
 - Create: `src/overlay/CharacterFace.tsx`
 
 **Interfaces:**
+
 - Consumes: `CharacterPhase`, `CharacterFrame`, `computeCharacterFrame` from `src/overlay/characterAnimation.ts` (Task 1).
 - Produces: `CharacterFace` component with props `{ phase: CharacterPhase; level: number }`, default export, for Task 3 to render in place of `waveform`/`sspinner`.
 
@@ -130,10 +134,12 @@ git commit -m "feat: add CharacterFace canvas component"
 ## Task 3: Replace the waveform and spinner in `RecordingOverlay.tsx`
 
 **Files:**
+
 - Modify: `src/overlay/RecordingOverlay.tsx:231-242` (the `waveform` block), and the `sspinner` element inside `workingRow` (`src/overlay/RecordingOverlay.tsx:278-285`)
 - Modify: `src/overlay/RecordingOverlay.css` (remove now-unused `.swave`/`.sspinner` rules only if nothing else references them — confirm with a repo-wide search before deleting)
 
 **Interfaces:**
+
 - Consumes: `CharacterFace` from `src/overlay/CharacterFace.tsx` (Task 2).
 
 - [ ] **Step 1: Replace the `waveform` JSX block**

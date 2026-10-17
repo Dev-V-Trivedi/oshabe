@@ -49,12 +49,14 @@ export function computeCharacterFrame(
       return { eyeOpenness: 0.85, antennaGlow, tilt };
     }
     case "working": {
-      const angle = ((t % WORKING_PULSE_PERIOD_MS) / WORKING_PULSE_PERIOD_MS) * Math.PI * 2;
+      const angle =
+        ((t % WORKING_PULSE_PERIOD_MS) / WORKING_PULSE_PERIOD_MS) * Math.PI * 2;
       const antennaGlow = clamp01(0.5 + 0.5 * Math.sin(angle));
       return { eyeOpenness: 0.6, antennaGlow, tilt: 0 };
     }
     case "error": {
-      const angle = ((t % ERROR_FLICKER_PERIOD_MS) / ERROR_FLICKER_PERIOD_MS) * Math.PI * 2;
+      const angle =
+        ((t % ERROR_FLICKER_PERIOD_MS) / ERROR_FLICKER_PERIOD_MS) * Math.PI * 2;
       const antennaGlow = clamp01(0.5 + 0.5 * Math.sin(angle * 3));
       return { eyeOpenness: 0.3, antennaGlow, tilt: 0 };
     }

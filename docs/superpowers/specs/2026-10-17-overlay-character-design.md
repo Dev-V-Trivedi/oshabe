@@ -61,22 +61,22 @@ Reference points gathered during design:
 Mapped to Oshabe's actual existing state model (`OverlayState`, `StreamPhase`,
 `StreamWorkKind`, `captureReady`, `modelLoading` in `RecordingOverlay.tsx`):
 
-| Existing signal | Character behavior |
-|---|---|
-| `!captureReady` (arming) | Eyes half-closed, slow blink; antenna dim |
-| `captureReady`, listening, mic level from `mic-level` event | Eyes widen; antenna glow pulses with level — this is the waveform replacement |
-| `streamText` arriving (streaming phase, phase=`listening`) | Subtle attentive tilt/nod per committed chunk |
-| `phase === "working"`, `workKind === "transcribing"` | Eyes narrow slightly; antenna tip animates in a steady "thinking" loop |
-| `phase === "working"`, `workKind === "polishing"` | Same "thinking" loop, label text already distinguishes this (no new character state needed) |
-| `modelLoading && modelLoadSlow` | Thinking loop continues; no separate character state (existing "loading model" text notice stays as-is) |
-| Transcription finalized / overlay about to hide | One quick happy bounce + antenna flash, then hides with the overlay |
-| `meeting-error` / transcription error | Antenna flickers amber/red briefly; eyes do a short "confused" animation, replacing/accompanying the current error toast |
+| Existing signal                                             | Character behavior                                                                                                       |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `!captureReady` (arming)                                    | Eyes half-closed, slow blink; antenna dim                                                                                |
+| `captureReady`, listening, mic level from `mic-level` event | Eyes widen; antenna glow pulses with level — this is the waveform replacement                                            |
+| `streamText` arriving (streaming phase, phase=`listening`)  | Subtle attentive tilt/nod per committed chunk                                                                            |
+| `phase === "working"`, `workKind === "transcribing"`        | Eyes narrow slightly; antenna tip animates in a steady "thinking" loop                                                   |
+| `phase === "working"`, `workKind === "polishing"`           | Same "thinking" loop, label text already distinguishes this (no new character state needed)                              |
+| `modelLoading && modelLoadSlow`                             | Thinking loop continues; no separate character state (existing "loading model" text notice stays as-is)                  |
+| Transcription finalized / overlay about to hide             | One quick happy bounce + antenna flash, then hides with the overlay                                                      |
+| `meeting-error` / transcription error                       | Antenna flickers amber/red briefly; eyes do a short "confused" animation, replacing/accompanying the current error toast |
 
 ## Technical approach
 
 - **New component**: `src/overlay/CharacterFace.tsx`. Props: `levels: number[]`
   (reuse the existing smoothed levels array), `captureReady: boolean`, `phase:
-  "arming" | "listening" | "working" | "done" | "error"` (derived from existing
+"arming" | "listening" | "working" | "done" | "error"` (derived from existing
   state in `RecordingOverlay.tsx`, not a new backend signal).
 - **Rendering**: Canvas2D (or inline SVG — implementation detail to confirm
   during planning) animated via `requestAnimationFrame`, with spring/easing
