@@ -13,8 +13,7 @@ import {
 import OshabeTextLogo from "./icons/OshabeTextLogo";
 import { useSettings } from "../hooks/useSettings";
 import { useModelStore } from "../stores/modelStore";
-import FullBodyCharacter from "./character/FullBodyCharacter";
-import { isAppBusy } from "./character/pose";
+import OshiCharacter from "../character/OshiCharacter";
 import {
   GeneralSettings,
   AdvancedSettings,
@@ -107,7 +106,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { settings } = useSettings();
   const { downloadingModels, verifyingModels, extractingModels } =
     useModelStore();
-  const busy = isAppBusy(downloadingModels, verifyingModels, extractingModels);
+  const busy =
+    Object.keys(downloadingModels).length > 0 ||
+    Object.keys(verifyingModels).length > 0 ||
+    Object.keys(extractingModels).length > 0;
 
   const availableSections = Object.entries(SECTIONS_CONFIG)
     .filter(([_, config]) => config.enabled(settings))
@@ -143,7 +145,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </div>
       <div className="mt-auto pb-2">
-        <FullBodyCharacter pose={busy ? "busy" : "idle"} />
+        <OshiCharacter state={busy ? "thinking" : "idle"} />
       </div>
     </div>
   );
