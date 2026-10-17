@@ -34,7 +34,7 @@ same character to two more places:
    steps, their order, and their underlying logic (`SetupWizard.tsx`'s
    `step`/`purpose`/`picked`/`choice` state, the model-download flow, the
    `finish()` settings writes) are unchanged. Only how each step is
-   *presented* changes: the plain `<h1>` step title becomes a speech-bubble
+   _presented_ changes: the plain `<h1>` step title becomes a speech-bubble
    next to the character, and the character's pose changes per step.
 3. **Regular-usage placement: fixed spot in Settings.** The Sidebar
    (`src/components/Sidebar.tsx`) is a persistent 160px column present on
@@ -46,9 +46,9 @@ same character to two more places:
    - **Busy** — any model is downloading, verifying, or extracting
      (`useModelStore`'s `downloadingModels` / `verifyingModels` /
      `extractingModels` maps are non-empty).
-   A third state — "meeting active," driven by the existing `meeting-status`
-   event — is an obvious, cheap follow-up once this ships, not part of this
-   plan.
+     A third state — "meeting active," driven by the existing `meeting-status`
+     event — is an obvious, cheap follow-up once this ships, not part of this
+     plan.
 5. **Out of scope:** `AccessibilityOnboarding.tsx` and
    `MicrophoneOnboarding.tsx` (the OS permission-gate screens that run
    before the wizard) are unchanged — they're permission mechanics, not
@@ -60,6 +60,7 @@ same character to two more places:
 The full-body version of the character from the earlier reference image
 (round head, big eyes, glowing antenna tip, now with a body/arms/legs),
 redrawn as the same character already established for the overlay:
+
 - Body: `--color-logo-primary`.
 - Eyes, antenna, and accent glows: `--color-logo-accent`.
 - Same rounded-pebble head shape and antenna-with-glowing-tip as
@@ -69,13 +70,13 @@ redrawn as the same character already established for the overlay:
 
 ## Poses
 
-| Pose | Used in | Description |
-|---|---|---|
-| `idle` | Sidebar (default), onboarding `languages`/`cleanup` steps | Neutral stance, gentle idle animation (blink, slight sway via CSS) |
-| `busy` | Sidebar (model downloading/verifying/extracting), onboarding `quality` step | A "working" stance — reused identically in both places |
-| `presenting` | onboarding `purpose` step | Gestures toward the options being shown |
-| `listening` | onboarding `practice` step | Attentive stance; reacts to the practice textarea having content vs. being empty (two sub-states, not continuous audio reactivity — this isn't the overlay face) |
-| `happy` | onboarding final (`cleanup`'s "done" action) | A small celebration pose |
+| Pose         | Used in                                                                     | Description                                                                                                                                                      |
+| ------------ | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `idle`       | Sidebar (default), onboarding `languages`/`cleanup` steps                   | Neutral stance, gentle idle animation (blink, slight sway via CSS)                                                                                               |
+| `busy`       | Sidebar (model downloading/verifying/extracting), onboarding `quality` step | A "working" stance — reused identically in both places                                                                                                           |
+| `presenting` | onboarding `purpose` step                                                   | Gestures toward the options being shown                                                                                                                          |
+| `listening`  | onboarding `practice` step                                                  | Attentive stance; reacts to the practice textarea having content vs. being empty (two sub-states, not continuous audio reactivity — this isn't the overlay face) |
+| `happy`      | onboarding final (`cleanup`'s "done" action)                                | A small celebration pose                                                                                                                                         |
 
 ## Technical approach
 

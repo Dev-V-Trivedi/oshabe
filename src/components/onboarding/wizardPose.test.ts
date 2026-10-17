@@ -10,20 +10,14 @@ const base = {
 assert.equal(poseForStep("purpose", base), "presenting");
 assert.equal(poseForStep("languages", base), "idle");
 assert.equal(poseForStep("quality", base), "presenting");
-assert.equal(
-  poseForStep("quality", { ...base, isDownloading: true }),
-  "busy",
-);
+assert.equal(poseForStep("quality", { ...base, isDownloading: true }), "busy");
 assert.equal(poseForStep("practice", base), "listening");
 assert.equal(
   poseForStep("practice", { ...base, practiceHasText: true }),
   "listening",
 );
 assert.equal(poseForStep("cleanup", base), "idle");
-assert.equal(
-  poseForStep("cleanup", { ...base, justFinished: true }),
-  "happy",
-);
+assert.equal(poseForStep("cleanup", { ...base, justFinished: true }), "happy");
 assert.equal(poseForStep("advanced", base), "idle");
 
 // Review Focus: isDownloading must not leak into other steps.

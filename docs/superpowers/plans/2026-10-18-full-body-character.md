@@ -32,10 +32,12 @@
 ## Task 1: Pure pose logic
 
 **Files:**
+
 - Create: `src/components/character/pose.ts`
 - Test: `src/components/character/pose.test.ts`
 
 **Interfaces:**
+
 - Produces: `type Pose = "idle" | "busy" | "presenting" | "listening" | "happy"`, `isAppBusy(downloading: Record<string, true>, verifying: Record<string, true>, extracting: Record<string, true>): boolean`. Tasks 2, 3, and 4 import `Pose` from this file; Task 3 imports `isAppBusy`.
 
 - [ ] **Step 1: Write the failing tests**
@@ -79,9 +81,11 @@ git commit -m "feat: add pure pose type and busy-state helper"
 ## Task 2: `FullBodyCharacter` SVG component
 
 **Files:**
+
 - Create: `src/components/character/FullBodyCharacter.tsx`
 
 **Interfaces:**
+
 - Consumes: `Pose` from `src/components/character/pose.ts` (Task 1).
 - Produces: `FullBodyCharacter` component with props `{ pose: Pose; size?: number }`, default export, for Task 3 and Task 4 to render.
 
@@ -101,7 +105,7 @@ is onboarding-specific UI built in Task 4, not part of the character SVG
 itself). Wrap spatial animation (idle sway, the `presenting` gesture) in a
 CSS class applied only when
 `!window.matchMedia("(prefers-reduced-motion: reduce)").matches`; pose
-*changes* (which SVG variant renders) always apply regardless of that
+_changes_ (which SVG variant renders) always apply regardless of that
 preference, per Global Constraints.
 
 - [ ] **Step 2: Manual verification**
@@ -123,9 +127,11 @@ git commit -m "feat: add FullBodyCharacter SVG component"
 ## Task 3: Sidebar integration
 
 **Files:**
+
 - Modify: `src/components/Sidebar.tsx`
 
 **Interfaces:**
+
 - Consumes: `isAppBusy` from `src/components/character/pose.ts` (Task 1); `FullBodyCharacter` from `src/components/character/FullBodyCharacter.tsx` (Task 2); `useModelStore`'s `downloadingModels`/`verifyingModels`/`extractingModels` (already imported elsewhere in the codebase, e.g. `SetupWizard.tsx`).
 
 - [ ] **Step 1: Add the character to the sidebar**
@@ -159,11 +165,13 @@ git commit -m "feat: show the full-body character in the Settings sidebar"
 ## Task 4: Onboarding integration
 
 **Files:**
+
 - Create: `src/components/onboarding/wizardPose.ts`
 - Test: `src/components/onboarding/wizardPose.test.ts`
 - Modify: `src/components/onboarding/SetupWizard.tsx`
 
 **Interfaces:**
+
 - Consumes: `Pose` from `src/components/character/pose.ts` (Task 1); `FullBodyCharacter` from `src/components/character/FullBodyCharacter.tsx` (Task 2); `SetupWizard.tsx`'s existing `Step` type (`"purpose" | "languages" | "quality" | "practice" | "cleanup" | "advanced"`).
 - Produces: `poseForStep(step: Step, signals: { practiceHasText: boolean; isDownloading: boolean; justFinished: boolean }): Pose`, exported from `wizardPose.ts`.
 
@@ -174,25 +182,44 @@ git commit -m "feat: show the full-body character in the Settings sidebar"
 import assert from "node:assert/strict";
 import { poseForStep } from "./wizardPose";
 
-const base = { practiceHasText: false, isDownloading: false, justFinished: false };
+const base = {
+  practiceHasText: false,
+  isDownloading: false,
+  justFinished: false,
+};
 
 assert.equal(poseForStep("purpose", base), "presenting");
 assert.equal(poseForStep("languages", base), "idle");
 assert.equal(poseForStep("quality", base), "presenting");
 assert.equal(poseForStep("quality", { ...base, isDownloading: true }), "busy");
 assert.equal(poseForStep("practice", base), "listening");
-assert.equal(poseForStep("practice", { ...base, practiceHasText: true }), "listening");
+assert.equal(
+  poseForStep("practice", { ...base, practiceHasText: true }),
+  "listening",
+);
 assert.equal(poseForStep("cleanup", base), "idle");
 assert.equal(poseForStep("cleanup", { ...base, justFinished: true }), "happy");
 assert.equal(poseForStep("advanced", base), "idle");
 
 // Review Focus: isDownloading must not leak into other steps.
-assert.equal(poseForStep("practice", { ...base, isDownloading: true }), "listening");
-assert.equal(poseForStep("languages", { ...base, isDownloading: true }), "idle");
+assert.equal(
+  poseForStep("practice", { ...base, isDownloading: true }),
+  "listening",
+);
+assert.equal(
+  poseForStep("languages", { ...base, isDownloading: true }),
+  "idle",
+);
 
 // Review Focus: justFinished must not leak into other steps.
-assert.equal(poseForStep("purpose", { ...base, justFinished: true }), "presenting");
-assert.equal(poseForStep("practice", { ...base, justFinished: true }), "listening");
+assert.equal(
+  poseForStep("purpose", { ...base, justFinished: true }),
+  "presenting",
+);
+assert.equal(
+  poseForStep("practice", { ...base, justFinished: true }),
+  "listening",
+);
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
