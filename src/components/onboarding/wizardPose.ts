@@ -1,4 +1,4 @@
-import type { Pose } from "../character/pose";
+import type { OshiState } from "../../character/oshi3d";
 import type { Step } from "./SetupWizard";
 
 export interface WizardPoseSignals {
@@ -7,14 +7,14 @@ export interface WizardPoseSignals {
   justFinished: boolean;
 }
 
-export function poseForStep(step: Step, signals: WizardPoseSignals): Pose {
+export function poseForStep(step: Step, signals: WizardPoseSignals): OshiState {
   switch (step) {
     case "purpose":
-      return "presenting";
+      return "happy";
     case "languages":
       return "idle";
     case "quality":
-      return signals.isDownloading ? "busy" : "presenting";
+      return signals.isDownloading ? "thinking" : "happy";
     case "practice":
       return "listening";
     case "cleanup":

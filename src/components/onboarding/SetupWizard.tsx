@@ -11,7 +11,7 @@ import { formatKeyCombination } from "../../lib/utils/keyboard";
 import ModelPicker from "./ModelPicker";
 import { pickPresets, type PresetId } from "./presets";
 import { getLanguageLabel } from "../../lib/constants/languages";
-import FullBodyCharacter from "../character/FullBodyCharacter";
+import OshiCharacter from "../../character/OshiCharacter";
 import { poseForStep } from "./wizardPose";
 
 interface SetupWizardProps {
@@ -175,8 +175,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
       </div>
       <div className="max-w-[560px] w-full mx-auto flex-1 flex flex-col gap-4">
         <div className="flex flex-col items-center gap-3 shrink-0">
-          <FullBodyCharacter
-            pose={poseForStep(step, {
+          <OshiCharacter
+            state={poseForStep(step, {
               practiceHasText: practice.trim().length > 0,
               isDownloading: choice !== null,
               justFinished,
