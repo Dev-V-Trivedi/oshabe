@@ -96,7 +96,10 @@ fn is_blank_transcription(transcription: &str) -> bool {
 
 /// Minimum number of back-to-back repeats of the same short word-sequence
 /// before a transcript is treated as degenerate rather than real speech.
-const REPETITION_MIN_REPEATS: usize = 3;
+/// 2 (not 3) because a dictionary entry pasted twice in a row is already a
+/// clean, confirmed symptom of prompt echo, not something worth waiting on
+/// a third repeat to confirm.
+const REPETITION_MIN_REPEATS: usize = 2;
 /// Minimum fraction of the transcript the repeating sequence must cover.
 const REPETITION_MIN_COVERAGE: f32 = 0.75;
 
@@ -1095,6 +1098,14 @@ mod tests {
         assert!(is_degenerate_repetition(
             "acme corp acme corp acme corp acme corp acme corp"
         ));
+    }
+
+    #[test]
+    fn a_dictionary_entry_pasted_exactly_twice_is_flagged() {
+        // The reported real-world symptom: the whole output is just the
+        // custom-word entry duplicated once, not a long loop.
+        assert!(is_degenerate_repetition("ravi sharma ravi sharma"));
+        assert!(is_degenerate_repetition("acme corp acme corp"));
     }
 
     #[test]
