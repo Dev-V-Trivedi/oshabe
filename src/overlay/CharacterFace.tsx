@@ -13,6 +13,27 @@ import {
 const SIZE = 22;
 const BODY_RADIUS = 7;
 
+// `CanvasRenderingContext2D.roundRect` is a relatively recent addition and
+// isn't guaranteed on every WebKitGTK (Linux) or older WKWebView (macOS)
+// build this app runs on, so rounded rectangles are drawn manually with
+// `arcTo`, which every Canvas2D implementation has always supported.
+function roundedRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+): void {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + width, y, x + width, y + height, radius);
+  ctx.arcTo(x + width, y + height, x, y + height, radius);
+  ctx.arcTo(x, y + height, x, y, radius);
+  ctx.arcTo(x, y, x + width, y, radius);
+  ctx.closePath();
+}
+
 function draw(
   ctx: CanvasRenderingContext2D,
   canvas: HTMLCanvasElement,
@@ -24,17 +45,21 @@ function draw(
 
   ctx.clearRect(0, 0, SIZE, SIZE);
 
-  // Antenna: a thin line with a glowing tip, above the head.
+  // Antenna: a thin line with a glowing tip. The tip sits at y=1.5 (not 0) so
+  // its full radius stays inside the canvas instead of being clipped by the
+  // top edge.
+  const tipX = SIZE / 2 + 3;
+  const tipY = 1.5;
   ctx.strokeStyle = accent;
   ctx.lineWidth = 1.2;
   ctx.beginPath();
-  ctx.moveTo(SIZE / 2, 3);
-  ctx.lineTo(SIZE / 2 + 3, 0);
+  ctx.moveTo(SIZE / 2, 4.5);
+  ctx.lineTo(tipX, tipY);
   ctx.stroke();
   ctx.globalAlpha = 0.4 + 0.6 * frame.antennaGlow;
   ctx.fillStyle = accent;
   ctx.beginPath();
-  ctx.arc(SIZE / 2 + 3, 0, 1.4, 0, Math.PI * 2);
+  ctx.arc(tipX, tipY, 1.2, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalAlpha = 1;
 
@@ -44,17 +69,16 @@ function draw(
   ctx.rotate((frame.tilt * Math.PI) / 24);
   ctx.translate(-SIZE / 2, -(SIZE / 2 + 2));
   ctx.fillStyle = primary;
-  ctx.beginPath();
-  ctx.roundRect(2, 5, SIZE - 4, SIZE - 7, BODY_RADIUS);
+  roundedRectPath(ctx, 2, 5, SIZE - 4, SIZE - 7, BODY_RADIUS);
   ctx.fill();
 
   // Eyes: height follows eyeOpenness.
   const eyeHeight = Math.max(1, 5 * frame.eyeOpenness);
   const eyeY = SIZE / 2 + 2 - eyeHeight / 2;
   ctx.fillStyle = accent;
-  ctx.beginPath();
-  ctx.roundRect(SIZE / 2 - 5, eyeY, 2.4, eyeHeight, 1.2);
-  ctx.roundRect(SIZE / 2 + 2.6, eyeY, 2.4, eyeHeight, 1.2);
+  roundedRectPath(ctx, SIZE / 2 - 5, eyeY, 2.4, eyeHeight, 1.2);
+  ctx.fill();
+  roundedRectPath(ctx, SIZE / 2 + 2.6, eyeY, 2.4, eyeHeight, 1.2);
   ctx.fill();
   ctx.restore();
 }
