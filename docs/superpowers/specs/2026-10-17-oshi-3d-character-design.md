@@ -195,7 +195,51 @@ This is a new, small, one-pose SVG (not a resurrection of the deleted
 facing error message (silent, graceful degrade — a missing mascot
 animation is not an error state worth interrupting the user over).
 
-### 5. Testing and verification
+### 5. Privacy cue: eyes closed during secure text entry
+
+When the user is typing into a password field anywhere on the system,
+Oshi closes its eyes and looks down rather than watching the cursor —
+a small, tasteful "I'm not looking" gesture rather than anything that
+reads as an alert or warning.
+
+- **Signal:** macOS Secure Input, which the backend already monitors for
+  `SecureInputWarning.tsx` (`secure-input-changed` event,
+  `SecureInputStatus.enabled: boolean` — the live, momentary check, not
+  `sustained`, which exists for that banner's different purpose of
+  filtering out normal password-field focus). No new backend work: this
+  reuses the existing monitor and event, just a second, independent
+  listener on the same event.
+- **Platform scope:** macOS only, because that's the only OS-level signal
+  this codebase has for "a secure field has focus" — the same constraint
+  `SecureInputWarning.tsx` already lives with. Windows/Linux: no listener
+  fires, Oshi behaves exactly as it does today. Not simulated, not
+  guessed at for other platforms.
+- **Where it's wired:** inside `OshiCharacter.tsx`, not `oshi3d.ts` and
+  not duplicated at each call site. `oshi3d.ts` stays app-agnostic (per
+  §1's module boundary — no Tauri imports in the rendering module);
+  `OshiCharacter.tsx` already sits in app code with Tauri available, the
+  same way it already owns translating props into `setState`/`setLevel`
+  calls. It subscribes to `secure-input-changed` once on mount and calls
+  a new `setModest(enabled: boolean)` method on the `oshi3d` instance
+  (sibling to the existing `setState`/`setLevel`/`poke`). Because the
+  wrapper is reused everywhere, this is automatic in the Sidebar,
+  onboarding, and the overlay alike — including mid-dictation, if the
+  user's focus happens to land on a password field while Oshi is in the
+  overlay pill.
+- **Visual behavior:** reuses the character's existing closed-eye draw
+  (already built for blinking and `sleeping`) plus a light blush and a
+  slight downward head tilt; no new floating emote, no color change, no
+  antenna/glow change. It overrides whatever `state`-driven expression
+  is currently showing, but a live `poke` reaction (annoyed/dizzy) still
+  wins if both happen at once — this sits at the same priority tier as
+  the prototype's existing hover/click reaction overlay, not above it.
+- **Not in scope here:** detecting "secret-looking" text the user is
+  dictating or typing within Oshabe itself (that's a text-content
+  classification problem, unrelated to this OS-level signal, and was not
+  asked for) — this is specifically about the OS reporting that a secure
+  field has focus elsewhere on the system.
+
+### 6. Testing and verification
 
 Three.js rendering cannot be unit-tested with this repo's existing
 convention (plain `bun <file>.test.ts` scripts, no jsdom/canvas mocking
@@ -219,7 +263,7 @@ spec does not introduce one. What is tested:
   consistent with every other UI change in this project history that
   could not be verified in this sandbox.
 
-### 6. i18n
+### 7. i18n
 
 No new user-facing strings. The existing `aria-label="Oshabe"` on the
 character root carries over unchanged (not translated today, matching the
