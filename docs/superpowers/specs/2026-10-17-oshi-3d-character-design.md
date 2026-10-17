@@ -130,7 +130,13 @@ One shared `OshiState` type (exported from `oshi3d.ts`) replaces both of
 the old enums:
 
 ```ts
-type OshiState = "idle" | "listening" | "thinking" | "happy" | "sad" | "sleeping";
+type OshiState =
+  | "idle"
+  | "listening"
+  | "thinking"
+  | "happy"
+  | "sad"
+  | "sleeping";
 ```
 
 - **Sidebar** (`Sidebar.tsx`): `isAppBusy(...)` (unchanged helper) maps
@@ -142,14 +148,14 @@ type OshiState = "idle" | "listening" | "thinking" | "happy" | "sad" | "sleeping
   `"purpose" → "happy"` (replaces old "presenting" — there is no
   presenting gesture in the new rig; "happy" best matches "welcoming,
   explaining"), `"languages" → "idle"`, `"quality" → isDownloading ?
-  "thinking" : "happy"`, `"practice" → "listening"`,
+"thinking" : "happy"`, `"practice" → "listening"`,
   `"cleanup" → justFinished ? "happy" : "idle"`, `"advanced" → "idle"`.
   This is a judgment call (the old "presenting" pose doesn't exist
   anymore); flagged here rather than silently decided in the plan.
 - **Overlay** (`RecordingOverlay.tsx`): the existing `CharacterPhase` prop
   is replaced by `OshiState` at the call site:
   `"arming" → "idle"`, `"listening" → "listening"`, `"working" →
-  "thinking"`, `"error" → "sad"`. The existing `level` prop (already a
+"thinking"`, `"error" → "sad"`. The existing `level` prop (already a
   0..1 number from the real `mic-level` Tauri event, see
   `RecordingOverlay.tsx:122`) passes straight through to
   `OshiCharacter`'s `level` prop — this is real microphone level, not
