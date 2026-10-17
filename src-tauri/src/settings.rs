@@ -540,10 +540,10 @@ pub struct AppSettings {
     pub paste_delay_ms: u64,
     #[serde(default = "default_paste_delay_after_ms")]
     pub paste_delay_after_ms: u64,
-    /// Debug-gated ("beta") receipt-sequenced paste: restore the clipboard only
-    /// after the target app actually reads the transcript, instead of after a
-    /// fixed delay. See `paste_tx`. macOS and Windows only.
-    #[serde(default)]
+    /// Receipt-sequenced paste: restore the clipboard only after the target
+    /// app actually reads the transcript, instead of after a fixed delay.
+    /// See `paste_tx`. macOS and Windows only; a no-op elsewhere.
+    #[serde(default = "default_reliable_paste")]
     pub reliable_paste: bool,
     #[serde(default = "default_typing_tool")]
     pub typing_tool: TypingTool,
@@ -688,6 +688,16 @@ fn default_paste_delay_ms() -> u64 {
 
 fn default_paste_delay_after_ms() -> u64 {
     60
+}
+
+/// The legacy clipboard-paste path restores the clipboard after a fixed
+/// delay rather than confirming the target app read it, so a slow target
+/// can get the user's previous clipboard content pasted back instead of the
+/// transcription (#502). Reliable paste fixes this and falls back to the
+/// legacy path if it can't start, so it's safe to default on wherever it's
+/// implemented (macOS/Windows only; the setting is a no-op elsewhere).
+fn default_reliable_paste() -> bool {
+    true
 }
 
 fn default_auto_submit() -> bool {
@@ -1142,7 +1152,7 @@ pub fn get_default_settings() -> AppSettings {
         show_tray_icon: default_show_tray_icon(),
         paste_delay_ms: default_paste_delay_ms(),
         paste_delay_after_ms: default_paste_delay_after_ms(),
-        reliable_paste: false,
+        reliable_paste: default_reliable_paste(),
         typing_tool: default_typing_tool(),
         external_script_path: None,
         filler_word_removal_enabled: default_filler_word_removal_enabled(),
