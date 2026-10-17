@@ -54,7 +54,14 @@ export default function OshiFallback({
       {/* body */}
       <ellipse cx="100" cy="162" rx="58" ry="46" fill="#fff8f4" />
       <circle cx="100" cy="160" r="12" fill="#b98ae0" opacity="0.35" />
-      <circle cx="100" cy="160" r="6" fill="none" stroke="#b98ae0" strokeWidth="2.5" />
+      <circle
+        cx="100"
+        cy="160"
+        r="6"
+        fill="none"
+        stroke="#b98ae0"
+        strokeWidth="2.5"
+      />
 
       {/* head */}
       <ellipse cx="100" cy="70" rx="86" ry="68" fill="#fff8f4" />
@@ -90,10 +97,30 @@ export default function OshiFallback({
       </g>
 
       {/* blush */}
-      <path d="M 50 80 L 48 86" stroke="#ff8fb1" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M 56 80 L 54 86" stroke="#ff8fb1" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M 144 80 L 146 86" stroke="#ff8fb1" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M 150 80 L 152 86" stroke="#ff8fb1" strokeWidth="2.5" strokeLinecap="round" />
+      <path
+        d="M 50 80 L 48 86"
+        stroke="#ff8fb1"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 56 80 L 54 86"
+        stroke="#ff8fb1"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 144 80 L 146 86"
+        stroke="#ff8fb1"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 150 80 L 152 86"
+        stroke="#ff8fb1"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
 
       {/* mouth */}
       <path

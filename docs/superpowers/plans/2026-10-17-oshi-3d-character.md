@@ -85,6 +85,7 @@ outlines, Canvas2D-textured face), React, TypeScript, Vite (existing
 - Produces: `export type OshiState = "idle" | "listening" | "thinking" | "happy" | "sad" | "sleeping"`;
   `export function createOshi(container: HTMLElement, options?: { accent?: string; headOnly?: boolean; reduceMotion?: boolean }): OshiInstance`
   where
+
   ```ts
   interface OshiInstance {
     setState(name: OshiState): void;
@@ -150,6 +151,7 @@ git commit -m "feat: port the 3D Oshi character engine to TypeScript"
 
 - Consumes: `createOshi`, `OshiState` from `./oshi3d` (Task 1).
 - Produces:
+
   ```ts
   interface OshiCharacterProps {
     state: OshiState;
@@ -158,7 +160,9 @@ git commit -m "feat: port the 3D Oshi character engine to TypeScript"
     size?: number; // CSS px; default 96 if !headOnly, 22 if headOnly
     className?: string;
   }
-  export default function OshiCharacter(props: OshiCharacterProps): React.ReactElement;
+  export default function OshiCharacter(
+    props: OshiCharacterProps,
+  ): React.ReactElement;
   ```
 
 - [ ] **Step 1: Write the component**

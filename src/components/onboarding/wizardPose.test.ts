@@ -10,7 +10,10 @@ const base = {
 assert.equal(poseForStep("purpose", base), "happy");
 assert.equal(poseForStep("languages", base), "idle");
 assert.equal(poseForStep("quality", base), "happy");
-assert.equal(poseForStep("quality", { ...base, isDownloading: true }), "thinking");
+assert.equal(
+  poseForStep("quality", { ...base, isDownloading: true }),
+  "thinking",
+);
 assert.equal(poseForStep("practice", base), "listening");
 assert.equal(
   poseForStep("practice", { ...base, practiceHasText: true }),
@@ -31,10 +34,7 @@ assert.equal(
 );
 
 // Review Focus: justFinished must not leak into other steps.
-assert.equal(
-  poseForStep("purpose", { ...base, justFinished: true }),
-  "happy",
-);
+assert.equal(poseForStep("purpose", { ...base, justFinished: true }), "happy");
 assert.equal(
   poseForStep("practice", { ...base, justFinished: true }),
   "listening",

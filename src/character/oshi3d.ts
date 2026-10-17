@@ -60,7 +60,12 @@ const PAL = {
 const FACE_W = 512;
 const FACE_H = 326;
 
-function damp(current: number, target: number, lambda: number, dt: number): number {
+function damp(
+  current: number,
+  target: number,
+  lambda: number,
+  dt: number,
+): number {
   return current + (target - current) * (1 - Math.exp(-lambda * dt));
 }
 
@@ -265,7 +270,11 @@ export function createOshi(
   function makeArm(side: -1 | 1): THREE.Group {
     const pivot = new THREE.Group();
     pivot.position.set(0.5 * side, 1.0, 0.04);
-    const arm = part(pivot, new THREE.CapsuleGeometry(0.15, 0.12, 8, 24), shellMat);
+    const arm = part(
+      pivot,
+      new THREE.CapsuleGeometry(0.15, 0.12, 8, 24),
+      shellMat,
+    );
     arm.position.y = -0.17;
     const hand = part(
       pivot,
@@ -423,8 +432,22 @@ export function createOshi(
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.moveTo(x, y + s * 0.35);
-    ctx.bezierCurveTo(x - s, y - s * 0.35, x - s * 0.45, y - s, x, y - s * 0.45);
-    ctx.bezierCurveTo(x + s * 0.45, y - s, x + s, y - s * 0.35, x, y + s * 0.35);
+    ctx.bezierCurveTo(
+      x - s,
+      y - s * 0.35,
+      x - s * 0.45,
+      y - s,
+      x,
+      y - s * 0.45,
+    );
+    ctx.bezierCurveTo(
+      x + s * 0.45,
+      y - s,
+      x + s,
+      y - s * 0.35,
+      x,
+      y + s * 0.35,
+    );
     ctx.fill();
   }
 
@@ -554,7 +577,13 @@ export function createOshi(
     // sparkles
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
-    ctx.arc(cx + rx * 0.24 + lx, cy - ry * 0.36 + ly, rx * 0.27, 0, Math.PI * 2);
+    ctx.arc(
+      cx + rx * 0.24 + lx,
+      cy - ry * 0.36 + ly,
+      rx * 0.27,
+      0,
+      Math.PI * 2,
+    );
     ctx.fill();
     ctx.beginPath();
     ctx.arc(cx - rx * 0.3 + lx, cy + ry * 0.18 + ly, rx * 0.1, 0, Math.PI * 2);
@@ -927,10 +956,20 @@ export function createOshi(
       jump(2.2);
       nextIdleHop = t + 8 + Math.random() * 10;
     }
-    if (s === "happy" && t - state.since > 0.9 && posY === 0 && t - state.since < 3.2) {
+    if (
+      s === "happy" &&
+      t - state.since > 0.9 &&
+      posY === 0 &&
+      t - state.since < 3.2
+    ) {
       jump(3.0);
     }
-    if (s === "listening" && posY === 0 && lv > 0.55 && Math.random() < dt * 6) {
+    if (
+      s === "listening" &&
+      posY === 0 &&
+      lv > 0.55 &&
+      Math.random() < dt * 6
+    ) {
       jump(0.9 + lv * 1.2);
     }
 
@@ -1094,7 +1133,10 @@ export function createOshi(
       scene.traverse((o) => {
         const mesh = o as THREE.Mesh;
         mesh.geometry?.dispose?.();
-        const m = mesh.material as THREE.Material | THREE.Material[] | undefined;
+        const m = mesh.material as
+          | THREE.Material
+          | THREE.Material[]
+          | undefined;
         if (m) {
           for (const mm of Array.isArray(m) ? m : [m]) {
             (mm as THREE.MeshBasicMaterial).map?.dispose();
