@@ -1,0 +1,29 @@
+/* Spatial motion only — gated behind prefers-reduced-motion in the
+   component itself. Pose changes (which variant renders) are not gated. */
+@keyframes fbc-sway {
+  0%,
+  100% {
+    transform: rotate(-1.5deg);
+  }
+  50% {
+    transform: rotate(1.5deg);
+  }
+}
+.fbc-sway {
+  transform-origin: 50% 90%;
+  animation: fbc-sway 3.2s ease-in-out infinite;
+}
+
+@keyframes fbc-gesture {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-12deg);
+  }
+}
+.fbc-gesture {
+  transform-origin: 74px 60px;
+  animation: fbc-gesture 1.6s ease-in-out infinite;
+}
