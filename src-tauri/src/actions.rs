@@ -94,6 +94,147 @@ fn is_blank_transcription(transcription: &str) -> bool {
     transcription.trim().is_empty()
 }
 
+/// Minimum number of back-to-back repeats of the same short word-sequence
+/// before a transcript is treated as degenerate rather than real speech.
+/// 2 (not 3) because a dictionary entry pasted twice in a row is already a
+/// clean, confirmed symptom of prompt echo, not something worth waiting on
+/// a third repeat to confirm.
+const REPETITION_MIN_REPEATS: usize = 2;
+/// Minimum fraction of the transcript the repeating sequence must cover.
+const REPETITION_MIN_COVERAGE: f32 = 0.75;
+
+/// Detects a transcript dominated by one short word-sequence repeating back
+/// to back — the shape Whisper's initial-prompt echo takes on unclear or
+/// silent audio (the model regurgitates the custom-word dictionary prompt
+/// instead of admitting it heard nothing), rather than real speech.
+fn is_degenerate_repetition(transcription: &str) -> bool {
+    let words: Vec<String> = transcription
+        .split_whitespace()
+        .map(|w| w.to_lowercase())
+        .collect();
+    let n = words.len();
+    if n < REPETITION_MIN_REPEATS * 2 {
+        return false;
+    }
+    for window in 1..=4usize {
+        if n < window * REPETITION_MIN_REPEATS {
+            continue;
+        }
+        // A repeating run can start anywhere in the transcript, not just at
+        // the beginning (real speech can precede or follow a degenerate loop).
+        let mut start = 0;
+        while start + window * REPETITION_MIN_REPEATS <= n {
+            let mut repeats = 1usize;
+            let mut i = start + window;
+            while i + window <= n && words[i..i + window] == words[i - window..i] {
+                repeats += 1;
+                i += window;
+            }
+            let covered = (repeats * window) as f32 / n as f32;
+            if repeats >= REPETITION_MIN_REPEATS && covered > REPETITION_MIN_COVERAGE {
+                return true;
+            }
+            start += 1;
+        }
+    }
+    false
+}
+
+/// Minimum run of consecutive words in a script other than the transcript's
+/// own before it's treated as having drifted into Whisper's known
+/// multi-script hallucination failure mode: on a low-confidence segment
+/// (background noise, a pause) the decoder's temperature fallback can lose
+/// the language constraint and emit fluent-looking garbage in unrelated
+/// scripts, rather than admitting it heard nothing.
+const SCRIPT_DRIFT_MIN_RUN: usize = 2;
+
+/// Unicode script families distinguished for drift detection. Not
+/// exhaustive — anything not covered here (symbols, most punctuation,
+/// digits) has no script and doesn't participate in detection.
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+enum Script {
+    Latin,
+    Greek,
+    Cyrillic,
+    Devanagari,
+    Han,
+    Hiragana,
+    Katakana,
+    Hangul,
+    Arabic,
+    Hebrew,
+}
+
+fn char_script(c: char) -> Option<Script> {
+    match c {
+        'a'..='z' | 'A'..='Z' | '\u{00C0}'..='\u{024F}' => Some(Script::Latin),
+        '\u{0370}'..='\u{03FF}' => Some(Script::Greek),
+        '\u{0400}'..='\u{04FF}' => Some(Script::Cyrillic),
+        '\u{0900}'..='\u{097F}' => Some(Script::Devanagari),
+        '\u{4E00}'..='\u{9FFF}' => Some(Script::Han),
+        '\u{3040}'..='\u{309F}' => Some(Script::Hiragana),
+        '\u{30A0}'..='\u{30FF}' => Some(Script::Katakana),
+        '\u{AC00}'..='\u{D7A3}' => Some(Script::Hangul),
+        '\u{0600}'..='\u{06FF}' => Some(Script::Arabic),
+        '\u{0590}'..='\u{05FF}' => Some(Script::Hebrew),
+        _ => None,
+    }
+}
+
+/// A word's dominant script: the script of its first script-bearing
+/// character. A word made only of digits/punctuation/symbols has none.
+fn word_script(word: &str) -> Option<Script> {
+    word.chars().find_map(char_script)
+}
+
+/// The transcript's own script, taken as the most common script among the
+/// first few script-bearing words (a small sample, not just the first word,
+/// so one misheard word at the very start can't misidentify it).
+fn primary_script(scripts: &[Option<Script>]) -> Option<Script> {
+    let mut counts: Vec<(Script, usize)> = Vec::new();
+    for s in scripts.iter().flatten().take(5) {
+        match counts.iter_mut().find(|(sc, _)| sc == s) {
+            Some((_, n)) => *n += 1,
+            None => counts.push((*s, 1)),
+        }
+    }
+    counts.into_iter().max_by_key(|&(_, n)| n).map(|(s, _)| s)
+}
+
+/// Detects a transcript that starts in its own script and then drifts, for
+/// `SCRIPT_DRIFT_MIN_RUN`-or-more consecutive script-bearing words, into a
+/// different script — the shape of the hallucination described above.
+/// Returns the clean prefix up to (not including) the drift when found, so
+/// the caller can keep the good part instead of discarding everything.
+/// Returns `None` when no drift is found (including transcripts with no
+/// determinable script, or ones consistently in a single non-Latin script).
+fn truncate_script_drift(transcription: &str) -> Option<String> {
+    let words: Vec<&str> = transcription.split_whitespace().collect();
+    let scripts: Vec<Option<Script>> = words.iter().map(|w| word_script(w)).collect();
+    let primary = primary_script(&scripts)?;
+
+    let mut run = 0usize;
+    let mut drift_start = 0usize;
+    for (i, script) in scripts.iter().enumerate() {
+        match script {
+            Some(s) if *s != primary => {
+                if run == 0 {
+                    drift_start = i;
+                }
+                run += 1;
+                if run >= SCRIPT_DRIFT_MIN_RUN {
+                    return Some(words[..drift_start].join(" "));
+                }
+            }
+            Some(_) => run = 0,
+            // Digit/punctuation-only words carry no script evidence either
+            // way and don't interrupt or extend a drift run.
+            None => {}
+        }
+    }
+    None
+}
+
 async fn complete_unless_cancelled<F, C>(operation: F, is_cancelled: C) -> Option<F::Output>
 where
     F: Future,
@@ -774,6 +915,42 @@ impl ShortcutAction for TranscribeAction {
                                 utils::redact_text(&transcription)
                             );
 
+                            let transcription = match truncate_script_drift(&transcription) {
+                                Some(truncated) => {
+                                    warn!(
+                                            "Transcription drifted into an unexpected script partway through, truncating to the clean prefix: {}",
+                                            utils::redact_text(&transcription)
+                                        );
+                                    truncated
+                                }
+                                None => transcription,
+                            };
+
+                            if is_degenerate_repetition(&transcription) {
+                                warn!(
+                                    "Transcription looked like a repeating loop, discarding: {}",
+                                    utils::redact_text(&transcription)
+                                );
+                                let _ = ah.emit(
+                                    "transcription-error",
+                                    "The transcription repeated itself in a loop and was discarded. Try again.".to_string(),
+                                );
+                                if wav_saved {
+                                    if let Err(save_err) = hm.save_entry(
+                                        file_name,
+                                        String::new(),
+                                        post_process,
+                                        None,
+                                        None,
+                                    ) {
+                                        error!("Failed to save failed history entry: {}", save_err);
+                                    }
+                                }
+                                utils::hide_recording_overlay(&ah);
+                                set_tray_state(&ah, TrayIconState::Idle);
+                                return;
+                            }
+
                             if handle_remember_command(&ah, &transcription) {
                                 // A voice command, not text to paste. The raw
                                 // words are still kept in history.
@@ -974,8 +1151,8 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
 #[cfg(test)]
 mod tests {
     use super::{
-        complete_unless_cancelled, is_blank_transcription, should_use_streaming_overlay,
-        strip_think_block,
+        complete_unless_cancelled, is_blank_transcription, is_degenerate_repetition,
+        should_use_streaming_overlay, strip_think_block, truncate_script_drift,
     };
     use crate::settings::OverlayStyle;
     use std::future;
@@ -995,6 +1172,98 @@ mod tests {
     fn non_blank_transcription_is_kept() {
         assert!(!is_blank_transcription("hello"));
         assert!(!is_blank_transcription("  hello  "));
+    }
+
+    #[test]
+    fn real_sentences_are_not_flagged_as_repetition() {
+        assert!(!is_degenerate_repetition(
+            "we should ship the update on friday morning"
+        ));
+        assert!(!is_degenerate_repetition("hello world"));
+        assert!(!is_degenerate_repetition(""));
+    }
+
+    #[test]
+    fn naturally_repeated_words_spread_through_a_sentence_are_not_flagged() {
+        // "and" repeats, but not back-to-back, so this is real prose, not a loop.
+        assert!(!is_degenerate_repetition(
+            "the cat and the dog and the bird and the fish"
+        ));
+    }
+
+    #[test]
+    fn single_word_prompt_echo_loop_is_flagged() {
+        assert!(is_degenerate_repetition("ravi ravi ravi ravi ravi ravi"));
+    }
+
+    #[test]
+    fn multi_word_dictionary_entry_looping_is_flagged() {
+        assert!(is_degenerate_repetition(
+            "ravi sharma ravi sharma ravi sharma"
+        ));
+        assert!(is_degenerate_repetition(
+            "acme corp acme corp acme corp acme corp acme corp"
+        ));
+    }
+
+    #[test]
+    fn a_dictionary_entry_pasted_exactly_twice_is_flagged() {
+        // The reported real-world symptom: the whole output is just the
+        // custom-word entry duplicated once, not a long loop.
+        assert!(is_degenerate_repetition("ravi sharma ravi sharma"));
+        assert!(is_degenerate_repetition("acme corp acme corp"));
+    }
+
+    #[test]
+    fn a_short_partial_repeat_at_the_end_is_not_enough_to_flag() {
+        // Only two repeats and doesn't cover most of the transcript.
+        assert!(!is_degenerate_repetition(
+            "let's meet tomorrow at noon ravi sharma ravi sharma to discuss the budget plan"
+        ));
+    }
+
+    #[test]
+    fn clean_transcription_is_unaffected_by_script_drift_check() {
+        assert_eq!(
+            truncate_script_drift("we should ship the update on friday morning"),
+            None
+        );
+        assert_eq!(truncate_script_drift(""), None);
+    }
+
+    #[test]
+    fn reported_hallucination_is_truncated_to_its_clean_prefix() {
+        // The exact corrupted output from the bug report: clean English, then
+        // an abrupt, sustained switch into Greek/Cyrillic/other scripts.
+        let transcription = "Hi this is a test message Και ψ дав Ohhh jhaals kenj Western jhaals ka atenção aur shvaad ktk sveteek svediyug aur teonh gaup tek territory yau ite ho emp jahaan parne pa当ra ach condemn hain";
+        assert_eq!(
+            truncate_script_drift(transcription),
+            Some("Hi this is a test message".to_string())
+        );
+    }
+
+    #[test]
+    fn a_single_foreign_loanword_does_not_trigger_truncation() {
+        // One stray non-Latin word is not a sustained drift.
+        assert_eq!(
+            truncate_script_drift("let's grab a café Σ together tomorrow"),
+            None
+        );
+    }
+
+    #[test]
+    fn a_transcription_entirely_in_one_non_latin_script_is_unaffected() {
+        // Devanagari dictation: the primary script is Devanagari throughout,
+        // so nothing "drifts" relative to it.
+        assert_eq!(truncate_script_drift("नमस्ते आप कैसे हैं आज मौसम अच्छा है"), None);
+    }
+
+    #[test]
+    fn digits_and_punctuation_do_not_reset_or_count_toward_drift() {
+        assert_eq!(
+            truncate_script_drift("meet at 5 pm, see you там тогда"),
+            Some("meet at 5 pm, see you".to_string())
+        );
     }
 
     #[test]

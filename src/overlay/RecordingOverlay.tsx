@@ -12,7 +12,7 @@ import type {
 import i18n, { syncLanguageFromSettings } from "@/i18n";
 import type { ModelStateEvent } from "@/lib/types/events";
 import { getLanguageDirection } from "@/lib/utils/rtl";
-import CharacterFace from "./CharacterFace";
+import OshiCharacter from "../character/OshiCharacter";
 
 type OverlayState = "recording" | "streaming" | "transcribing" | "processing";
 
@@ -230,9 +230,11 @@ const RecordingOverlay: React.FC = () => {
 
   // ---- Shared building blocks (one visual language for every overlay form) ----
   const waveform = (
-    <CharacterFace
-      phase={captureReady ? "listening" : "arming"}
+    <OshiCharacter
+      state={captureReady ? "listening" : "idle"}
       level={Math.max(...levels, 0)}
+      headOnly
+      size={22}
     />
   );
 
@@ -273,7 +275,7 @@ const RecordingOverlay: React.FC = () => {
   const workingRow = (label: string, showCancel: boolean) => (
     <div className="sbase">
       <div className="sbase-l">
-        <CharacterFace phase="working" level={0} />
+        <OshiCharacter state="thinking" headOnly size={22} />
       </div>
       <span className="swork-label">{label}</span>
       <div className="sbase-r">{showCancel && cancelBtn}</div>
