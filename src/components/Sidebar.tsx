@@ -12,6 +12,9 @@ import {
 } from "lucide-react";
 import OshabeTextLogo from "./icons/OshabeTextLogo";
 import { useSettings } from "../hooks/useSettings";
+import { useModelStore } from "../stores/modelStore";
+import FullBodyCharacter from "./character/FullBodyCharacter";
+import { isAppBusy } from "./character/pose";
 import {
   GeneralSettings,
   AdvancedSettings,
@@ -102,6 +105,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { t } = useTranslation();
   const { settings } = useSettings();
+  const { downloadingModels, verifyingModels, extractingModels } =
+    useModelStore();
+  const busy = isAppBusy(downloadingModels, verifyingModels, extractingModels);
 
   const availableSections = Object.entries(SECTIONS_CONFIG)
     .filter(([_, config]) => config.enabled(settings))
@@ -135,6 +141,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           );
         })}
+      </div>
+      <div className="mt-auto pb-2">
+        <FullBodyCharacter pose={busy ? "busy" : "idle"} />
       </div>
     </div>
   );
