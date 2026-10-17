@@ -333,6 +333,16 @@ fn initialize_core_logic(app_handle: &AppHandle) {
                 cancel_current_operation(app);
             }
             "quit" => {
+                // Flush and save any meeting still recording before exiting;
+                // RunEvent::Exit runs no destructors, so this is the last
+                // chance to persist audio sitting in its in-memory buffers.
+                if let Some(mgr) = app.try_state::<Arc<meetings::MeetingManager>>() {
+                    if mgr.active().is_some() {
+                        if let Err(e) = mgr.stop() {
+                            log::warn!("Failed to stop active meeting before quitting: {}", e);
+                        }
+                    }
+                }
                 app.exit(0);
             }
             id if id.starts_with("model_select:") => {
