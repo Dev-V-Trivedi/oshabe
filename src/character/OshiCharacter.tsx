@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
+import type { SecureInputStatus } from "@/bindings";
 import { createOshi, type OshiInstance, type OshiState } from "./oshi3d";
 import OshiFallback from "./OshiFallback";
 
@@ -48,6 +50,19 @@ export default function OshiCharacter({
   useEffect(() => {
     instanceRef.current?.setLevel(level ?? 0);
   }, [level]);
+
+  // macOS Secure Input going active anywhere on the system (a password
+  // field gaining focus) — close Oshi's eyes, a courtesy "I'm not
+  // looking" gesture. Subscribed unconditionally in every instance
+  // (Sidebar, onboarding, overlay) so no call site has to wire this.
+  useEffect(() => {
+    const unlisten = listen<SecureInputStatus>("secure-input-changed", (e) => {
+      instanceRef.current?.setModest(e.payload.enabled);
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
 
   if (failed) {
     return <OshiFallback size={resolvedSize} className={className} />;
