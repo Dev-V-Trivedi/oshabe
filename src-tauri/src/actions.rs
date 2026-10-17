@@ -94,6 +94,49 @@ fn is_blank_transcription(transcription: &str) -> bool {
     transcription.trim().is_empty()
 }
 
+/// Minimum number of back-to-back repeats of the same short word-sequence
+/// before a transcript is treated as degenerate rather than real speech.
+const REPETITION_MIN_REPEATS: usize = 3;
+/// Minimum fraction of the transcript the repeating sequence must cover.
+const REPETITION_MIN_COVERAGE: f32 = 0.75;
+
+/// Detects a transcript dominated by one short word-sequence repeating back
+/// to back — the shape Whisper's initial-prompt echo takes on unclear or
+/// silent audio (the model regurgitates the custom-word dictionary prompt
+/// instead of admitting it heard nothing), rather than real speech.
+fn is_degenerate_repetition(transcription: &str) -> bool {
+    let words: Vec<String> = transcription
+        .split_whitespace()
+        .map(|w| w.to_lowercase())
+        .collect();
+    let n = words.len();
+    if n < REPETITION_MIN_REPEATS * 2 {
+        return false;
+    }
+    for window in 1..=4usize {
+        if n < window * REPETITION_MIN_REPEATS {
+            continue;
+        }
+        // A repeating run can start anywhere in the transcript, not just at
+        // the beginning (real speech can precede or follow a degenerate loop).
+        let mut start = 0;
+        while start + window * REPETITION_MIN_REPEATS <= n {
+            let mut repeats = 1usize;
+            let mut i = start + window;
+            while i + window <= n && words[i..i + window] == words[i - window..i] {
+                repeats += 1;
+                i += window;
+            }
+            let covered = (repeats * window) as f32 / n as f32;
+            if repeats >= REPETITION_MIN_REPEATS && covered > REPETITION_MIN_COVERAGE {
+                return true;
+            }
+            start += 1;
+        }
+    }
+    false
+}
+
 async fn complete_unless_cancelled<F, C>(operation: F, is_cancelled: C) -> Option<F::Output>
 where
     F: Future,
@@ -774,6 +817,31 @@ impl ShortcutAction for TranscribeAction {
                                 utils::redact_text(&transcription)
                             );
 
+                            if is_degenerate_repetition(&transcription) {
+                                warn!(
+                                    "Transcription looked like a repeating loop, discarding: {}",
+                                    utils::redact_text(&transcription)
+                                );
+                                let _ = ah.emit(
+                                    "transcription-error",
+                                    "The transcription repeated itself in a loop and was discarded. Try again.".to_string(),
+                                );
+                                if wav_saved {
+                                    if let Err(save_err) = hm.save_entry(
+                                        file_name,
+                                        String::new(),
+                                        post_process,
+                                        None,
+                                        None,
+                                    ) {
+                                        error!("Failed to save failed history entry: {}", save_err);
+                                    }
+                                }
+                                utils::hide_recording_overlay(&ah);
+                                set_tray_state(&ah, TrayIconState::Idle);
+                                return;
+                            }
+
                             if handle_remember_command(&ah, &transcription) {
                                 // A voice command, not text to paste. The raw
                                 // words are still kept in history.
@@ -974,8 +1042,8 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
 #[cfg(test)]
 mod tests {
     use super::{
-        complete_unless_cancelled, is_blank_transcription, should_use_streaming_overlay,
-        strip_think_block,
+        complete_unless_cancelled, is_blank_transcription, is_degenerate_repetition,
+        should_use_streaming_overlay, strip_think_block,
     };
     use crate::settings::OverlayStyle;
     use std::future;
@@ -995,6 +1063,46 @@ mod tests {
     fn non_blank_transcription_is_kept() {
         assert!(!is_blank_transcription("hello"));
         assert!(!is_blank_transcription("  hello  "));
+    }
+
+    #[test]
+    fn real_sentences_are_not_flagged_as_repetition() {
+        assert!(!is_degenerate_repetition(
+            "we should ship the update on friday morning"
+        ));
+        assert!(!is_degenerate_repetition("hello world"));
+        assert!(!is_degenerate_repetition(""));
+    }
+
+    #[test]
+    fn naturally_repeated_words_spread_through_a_sentence_are_not_flagged() {
+        // "and" repeats, but not back-to-back, so this is real prose, not a loop.
+        assert!(!is_degenerate_repetition(
+            "the cat and the dog and the bird and the fish"
+        ));
+    }
+
+    #[test]
+    fn single_word_prompt_echo_loop_is_flagged() {
+        assert!(is_degenerate_repetition("ravi ravi ravi ravi ravi ravi"));
+    }
+
+    #[test]
+    fn multi_word_dictionary_entry_looping_is_flagged() {
+        assert!(is_degenerate_repetition(
+            "ravi sharma ravi sharma ravi sharma"
+        ));
+        assert!(is_degenerate_repetition(
+            "acme corp acme corp acme corp acme corp acme corp"
+        ));
+    }
+
+    #[test]
+    fn a_short_partial_repeat_at_the_end_is_not_enough_to_flag() {
+        // Only two repeats and doesn't cover most of the transcript.
+        assert!(!is_degenerate_repetition(
+            "let's meet tomorrow at noon ravi sharma ravi sharma to discuss the budget plan"
+        ));
     }
 
     #[test]
