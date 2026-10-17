@@ -11,13 +11,15 @@ import { formatKeyCombination } from "../../lib/utils/keyboard";
 import ModelPicker from "./ModelPicker";
 import { pickPresets, type PresetId } from "./presets";
 import { getLanguageLabel } from "../../lib/constants/languages";
+import FullBodyCharacter from "../character/FullBodyCharacter";
+import { poseForStep } from "./wizardPose";
 
 interface SetupWizardProps {
   onModelSelected: () => void;
   preview?: boolean;
 }
 
-type Step =
+export type Step =
   | "purpose"
   | "languages"
   | "quality"
@@ -84,6 +86,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
   const [choice, setChoice] = useState<string | null>(null);
   const [cleanup, setCleanup] = useState<boolean>(false);
   const [practice, setPractice] = useState("");
+  const [justFinished, setJustFinished] = useState(false);
   const started = useRef(false);
 
   const presets = useMemo(
@@ -137,6 +140,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
   };
 
   const finish = async () => {
+    setJustFinished(true);
     if (!preview) {
       // Auto-detect guesses wrong for accented English (it can pick Hindi), so
       // lock the language to what the person said they speak.
@@ -164,12 +168,24 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
     onModelSelected();
   };
 
-  const shell = (children: React.ReactNode) => (
+  const shell = (title: string, children: React.ReactNode) => (
     <div className="h-screen w-full flex flex-col p-6 gap-4 overflow-y-auto">
       <div className="flex flex-col items-center gap-2 shrink-0">
         <OshabeTextLogo width={200} />
       </div>
       <div className="max-w-[560px] w-full mx-auto flex-1 flex flex-col gap-4">
+        <div className="flex flex-col items-center gap-3 shrink-0">
+          <FullBodyCharacter
+            pose={poseForStep(step, {
+              practiceHasText: practice.trim().length > 0,
+              isDownloading: choice !== null,
+              justFinished,
+            })}
+          />
+          <div className="rounded-2xl border border-mid-gray/30 bg-mid-gray/10 px-4 py-2 text-center">
+            <p className="text-xl font-semibold">{title}</p>
+          </div>
+        </div>
         {children}
       </div>
     </div>
@@ -211,10 +227,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
 
   if (step === "purpose") {
     return shell(
+      t("onboarding.wizard.purposeTitle"),
       <>
-        <h1 className="text-xl font-semibold text-center">
-          {t("onboarding.wizard.purposeTitle")}
-        </h1>
         <div className="flex flex-col gap-3">
           {option(
             purpose === "dictation",
@@ -265,10 +279,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
         return [...next, code];
       });
     return shell(
+      t("onboarding.wizard.languagesTitle"),
       <>
-        <h1 className="text-xl font-semibold text-center">
-          {t("onboarding.wizard.languagesTitle")}
-        </h1>
         <p className="text-center text-sm text-text/70">
           {t("onboarding.wizard.languagesBody")}
         </p>
@@ -306,10 +318,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
     const downloading = choice !== null;
     const pct = choice ? downloadProgress[choice]?.percentage : undefined;
     return shell(
+      t("onboarding.wizard.qualityTitle"),
       <>
-        <h1 className="text-xl font-semibold text-center">
-          {t("onboarding.wizard.qualityTitle")}
-        </h1>
         <p className="text-center text-sm text-text/70">
           {t("onboarding.wizard.qualityBody")}
         </p>
@@ -371,10 +381,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
 
   if (step === "practice") {
     return shell(
+      t("onboarding.wizard.practiceTitle"),
       <>
-        <h1 className="text-xl font-semibold text-center">
-          {t("onboarding.wizard.practiceTitle")}
-        </h1>
         <p className="text-center text-sm text-text/70">
           {t("onboarding.wizard.practiceBody", { hotkey })}
         </p>
@@ -395,10 +403,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
   }
 
   return shell(
+    t("onboarding.wizard.cleanupTitle"),
     <>
-      <h1 className="text-xl font-semibold text-center">
-        {t("onboarding.wizard.cleanupTitle")}
-      </h1>
       <p className="text-center text-sm text-text/70">
         {t("onboarding.wizard.cleanupBody")}
       </p>
