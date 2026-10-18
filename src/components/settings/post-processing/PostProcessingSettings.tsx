@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { RefreshCcw } from "lucide-react";
+import {
+  RefreshCcw,
+  Cpu,
+  HardDrive,
+  Zap,
+  Keyboard,
+  Globe,
+  MessageSquare,
+  ListChecks,
+  Palette,
+} from "lucide-react";
 import { commands, type PostProcessApiFormat } from "@/bindings";
 
 import { Alert } from "../../ui/Alert";
@@ -473,19 +483,31 @@ export const PostProcessingSettings: React.FC = () => {
 
   return (
     <div className="max-w-3xl w-full mx-auto space-y-6">
-      <SettingsGroup title={t("settings.postProcessing.builtIn.title")}>
+      <SettingsGroup
+        title={t("settings.postProcessing.builtIn.title")}
+        icon={<Cpu />}
+      >
         <BuiltInModels />
       </SettingsGroup>
 
-      <SettingsGroup title={t("settings.postProcessing.local.title")}>
+      <SettingsGroup
+        title={t("settings.postProcessing.local.title")}
+        icon={<HardDrive />}
+      >
         <OllamaModels />
       </SettingsGroup>
 
-      <SettingsGroup title={t("settings.postProcessing.always.title")}>
+      <SettingsGroup
+        title={t("settings.postProcessing.always.title")}
+        icon={<Zap />}
+      >
         <AlwaysCleanup />
       </SettingsGroup>
 
-      <SettingsGroup title={t("settings.postProcessing.hotkey.title")}>
+      <SettingsGroup
+        title={t("settings.postProcessing.hotkey.title")}
+        icon={<Keyboard />}
+      >
         <ShortcutInput
           shortcutId="transcribe_with_post_process"
           descriptionMode="tooltip"
@@ -493,19 +515,31 @@ export const PostProcessingSettings: React.FC = () => {
         />
       </SettingsGroup>
 
-      <SettingsGroup title={t("settings.postProcessing.api.title")}>
+      <SettingsGroup
+        title={t("settings.postProcessing.api.title")}
+        icon={<Globe />}
+      >
         <PostProcessingSettingsApi />
       </SettingsGroup>
 
-      <SettingsGroup title={t("settings.postProcessing.prompts.title")}>
+      <SettingsGroup
+        title={t("settings.postProcessing.prompts.title")}
+        icon={<MessageSquare />}
+      >
         <PostProcessingSettingsPrompts />
       </SettingsGroup>
 
-      <SettingsGroup title={t("settings.postProcessing.userRules.title")}>
+      <SettingsGroup
+        title={t("settings.postProcessing.userRules.title")}
+        icon={<ListChecks />}
+      >
         <UserRules />
       </SettingsGroup>
 
-      <SettingsGroup title={t("settings.postProcessing.contextTone.title")}>
+      <SettingsGroup
+        title={t("settings.postProcessing.contextTone.title")}
+        icon={<Palette />}
+      >
         <ContextTone />
       </SettingsGroup>
     </div>

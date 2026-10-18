@@ -1,6 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { type } from "@tauri-apps/plugin-os";
+import { Keyboard, Volume2 } from "lucide-react";
 import { MicrophoneSelector } from "../MicrophoneSelector";
 import MicTest from "../../shared/MicTest";
 import { ChannelSelector } from "../ChannelSelector";
@@ -20,14 +21,14 @@ export const GeneralSettings: React.FC = () => {
   const isLinux = type() === "linux";
   return (
     <div className="max-w-3xl w-full mx-auto space-y-6">
-      <SettingsGroup title={t("settings.general.title")}>
+      <SettingsGroup title={t("settings.general.title")} icon={<Keyboard />}>
         <ShortcutInput shortcutId="transcribe" grouped={true} />
         <ShortcutActivationSetting descriptionMode="tooltip" grouped={true} />
         {/* Cancel shortcut remains hidden on Linux because of dynamic shortcut instability. */}
         {!isLinux && <ShortcutInput shortcutId="cancel" grouped={true} />}
       </SettingsGroup>
       <ModelSettingsCard />
-      <SettingsGroup title={t("settings.sound.title")}>
+      <SettingsGroup title={t("settings.sound.title")} icon={<Volume2 />}>
         <MicrophoneSelector descriptionMode="tooltip" grouped={true} />
         <div className="px-4 py-3">
           <MicTest />
