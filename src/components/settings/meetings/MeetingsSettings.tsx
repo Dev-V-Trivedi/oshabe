@@ -20,6 +20,10 @@ import {
   Square,
   Trash2,
   Mic,
+  AlignLeft,
+  Video,
+  Keyboard,
+  History,
 } from "lucide-react";
 import {
   commands,
@@ -393,7 +397,7 @@ const MeetingDetailView: React.FC<{
         </Button>
       </div>
 
-      <SettingsGroup title={t("meetings.summary")}>
+      <SettingsGroup title={t("meetings.summary")} icon={<FileText />}>
         <div className="space-y-3 px-4 py-3">
           {summary ? (
             <SummaryView data={summary} />
@@ -412,7 +416,7 @@ const MeetingDetailView: React.FC<{
         </div>
       </SettingsGroup>
 
-      <SettingsGroup title={t("meetings.transcript")}>
+      <SettingsGroup title={t("meetings.transcript")} icon={<AlignLeft />}>
         <div className="px-4 py-3">
           {detail.segments.length === 0 ? (
             <p className="text-sm text-text/60">
@@ -655,7 +659,7 @@ export const MeetingsSettings: React.FC = () => {
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
-      <SettingsGroup title={t("meetings.title")}>
+      <SettingsGroup title={t("meetings.title")} icon={<Video />}>
         <div className="space-y-3 px-4 py-3">
           <p className="text-sm text-text/70">{t("meetings.intro")}</p>
 
@@ -788,7 +792,7 @@ export const MeetingsSettings: React.FC = () => {
         </div>
       </SettingsGroup>
 
-      <SettingsGroup title={t("meetings.shortcutTitle")}>
+      <SettingsGroup title={t("meetings.shortcutTitle")} icon={<Keyboard />}>
         <ShortcutInput shortcutId="meeting_toggle" grouped={true} />
         <ToggleSwitch
           checked={settings?.meeting_prompt_enabled ?? true}
@@ -820,7 +824,7 @@ export const MeetingsSettings: React.FC = () => {
           ))}
         </select>
       </label>
-      <SettingsGroup title={t("meetings.pastTitle")}>
+      <SettingsGroup title={t("meetings.pastTitle")} icon={<History />}>
         {rows.length > 0 && (
           <div className="px-4 pt-3">
             <Input

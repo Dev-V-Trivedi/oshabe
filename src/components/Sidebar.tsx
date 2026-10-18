@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import OshabeTextLogo from "./icons/OshabeTextLogo";
 import { useSettings } from "../hooks/useSettings";
+import { useModelStore } from "../stores/modelStore";
+import OshiCharacter from "../character/OshiCharacter";
 import {
   GeneralSettings,
   AdvancedSettings,
@@ -102,6 +104,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { t } = useTranslation();
   const { settings } = useSettings();
+  const { downloadingModels, verifyingModels, extractingModels } =
+    useModelStore();
+  const busy =
+    Object.keys(downloadingModels).length > 0 ||
+    Object.keys(verifyingModels).length > 0 ||
+    Object.keys(extractingModels).length > 0;
 
   const availableSections = Object.entries(SECTIONS_CONFIG)
     .filter(([_, config]) => config.enabled(settings))
@@ -135,6 +143,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           );
         })}
+      </div>
+      <div className="mt-auto pb-2">
+        <OshiCharacter state={busy ? "thinking" : "idle"} />
       </div>
     </div>
   );

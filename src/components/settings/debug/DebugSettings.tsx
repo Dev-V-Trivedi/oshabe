@@ -1,5 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { Bug } from "lucide-react";
 import { WordCorrectionThreshold } from "./WordCorrectionThreshold";
 import { LogLevelSelector } from "./LogLevelSelector";
 import { LiveLogViewer } from "./LiveLogViewer";
@@ -30,7 +31,7 @@ export const DebugSettings: React.FC<DebugSettingsProps> = ({
 
   return (
     <div className="max-w-3xl w-full mx-auto space-y-6">
-      <SettingsGroup title={t("settings.debug.title")}>
+      <SettingsGroup title={t("settings.debug.title")} icon={<Bug />}>
         <LogLevelSelector grouped={true} />
         <WhatsNewPreview descriptionMode="tooltip" grouped={true} />
         {onPreviewOnboarding && (

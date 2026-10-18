@@ -1,5 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { Cpu } from "lucide-react";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { LanguageSelector } from "../LanguageSelector";
 import { TranslateToEnglish } from "../TranslateToEnglish";
@@ -46,6 +47,7 @@ export const ModelSettingsCard: React.FC = () => {
       title={t("settings.modelSettings.title", {
         model: currentModelInfo.name,
       })}
+      icon={<Cpu />}
     >
       {showLanguageSelector && (
         <LanguageSelector

@@ -1,5 +1,12 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import {
+  Settings as SettingsIcon,
+  ClipboardType,
+  AudioLines,
+  History,
+  FlaskConical,
+} from "lucide-react";
 import { ShowOverlay } from "../ShowOverlay";
 import { ModelUnloadTimeoutSetting } from "../ModelUnloadTimeout";
 import { CustomWords } from "../CustomWords";
@@ -32,7 +39,10 @@ export const AdvancedSettings: React.FC = () => {
 
   return (
     <div className="max-w-3xl w-full mx-auto space-y-6">
-      <SettingsGroup title={t("settings.advanced.groups.app")}>
+      <SettingsGroup
+        title={t("settings.advanced.groups.app")}
+        icon={<SettingsIcon />}
+      >
         <StartHidden descriptionMode="tooltip" grouped={true} />
         <AutostartToggle descriptionMode="tooltip" grouped={true} />
         <ShowTrayIcon descriptionMode="tooltip" grouped={true} />
@@ -41,14 +51,20 @@ export const AdvancedSettings: React.FC = () => {
         <ExperimentalToggle descriptionMode="tooltip" grouped={true} />
       </SettingsGroup>
 
-      <SettingsGroup title={t("settings.advanced.groups.output")}>
+      <SettingsGroup
+        title={t("settings.advanced.groups.output")}
+        icon={<ClipboardType />}
+      >
         <PasteMethodSetting descriptionMode="tooltip" grouped={true} />
         <TypingToolSetting descriptionMode="tooltip" grouped={true} />
         <ClipboardHandlingSetting descriptionMode="tooltip" grouped={true} />
         <AutoSubmit descriptionMode="tooltip" grouped={true} />
       </SettingsGroup>
 
-      <SettingsGroup title={t("settings.advanced.groups.transcription")}>
+      <SettingsGroup
+        title={t("settings.advanced.groups.transcription")}
+        icon={<AudioLines />}
+      >
         <VoiceActivityDetection descriptionMode="tooltip" grouped={true} />
         <FillerWordRemoval descriptionMode="tooltip" grouped={true} />
         <ChineseScriptSetting descriptionMode="tooltip" grouped={true} />
@@ -56,7 +72,10 @@ export const AdvancedSettings: React.FC = () => {
         <AppendTrailingSpace descriptionMode="tooltip" grouped={true} />
       </SettingsGroup>
 
-      <SettingsGroup title={t("settings.advanced.groups.history")}>
+      <SettingsGroup
+        title={t("settings.advanced.groups.history")}
+        icon={<History />}
+      >
         <HistoryLimit descriptionMode="tooltip" grouped={true} />
         <RecordingRetentionPeriodSelector
           descriptionMode="tooltip"
@@ -65,7 +84,10 @@ export const AdvancedSettings: React.FC = () => {
       </SettingsGroup>
 
       {experimentalEnabled && (
-        <SettingsGroup title={t("settings.advanced.groups.experimental")}>
+        <SettingsGroup
+          title={t("settings.advanced.groups.experimental")}
+          icon={<FlaskConical />}
+        >
           <PostProcessingToggle descriptionMode="tooltip" grouped={true} />
           <KeyboardImplementationSelector
             descriptionMode="tooltip"
