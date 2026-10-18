@@ -17,7 +17,7 @@ export default function OshiFallback({
     <svg
       width={size}
       height={size}
-      viewBox="0 0 200 220"
+      viewBox="0 -30 200 250"
       role="img"
       aria-label="Oshabe"
       className={className}
