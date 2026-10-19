@@ -368,6 +368,14 @@ jobs:
           ORT_DIR="$(pwd)/onnxruntime-osx-x86_64-${ORT_VERSION}"
           echo "ORT_LIB_LOCATION=$ORT_DIR/lib" >> $GITHUB_ENV
           echo "ORT_PREFER_DYNAMIC_LINK=1" >> $GITHUB_ENV
+          # The prebuilt dylib still carries its original signer's code
+          # signature (a different Team ID than this app). On an unsigned
+          # build (sign-binaries off), that mismatch makes dyld's library
+          # validation refuse to load it at launch ("different Team IDs").
+          # Strip it so the dylib is unsigned, matching an unsigned app; a
+          # later signed build re-signs it under this app's own identity
+          # as part of Tauri's own codesign pass.
+          codesign --remove-signature "$ORT_DIR/lib/libonnxruntime.${ORT_VERSION}.dylib"
           # Bundle the versioned dylib (matches the install name @rpath/libonnxruntime.1.24.2.dylib)
           jq --arg lib "$ORT_DIR/lib/libonnxruntime.${ORT_VERSION}.dylib" \
             '.bundle.macOS.frameworks = [$lib]' \
