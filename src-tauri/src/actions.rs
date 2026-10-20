@@ -24,6 +24,12 @@ use tauri::Manager;
 use tauri::{AppHandle, Emitter};
 
 const CANCELLATION_POLL_INTERVAL: Duration = Duration::from_millis(25);
+// Safety net for a transcription call that never returns (a wedged native
+// engine, a pathological input). Without this the overlay stays on
+// "Processing" forever with no way out but killing the app. Generous enough
+// that a slow CPU-only/emulated run on a long recording still finishes
+// normally.
+const TRANSCRIPTION_TIMEOUT: Duration = Duration::from_secs(180);
 
 #[derive(Clone, serde::Serialize)]
 struct RecordingErrorEvent {
@@ -864,6 +870,18 @@ impl ShortcutAction for TranscribeAction {
                     // Transcribe concurrently with WAV save. If a live stream was
                     // running, finalize it and use its text (all audio was already
                     // fed to the stream); otherwise batch-transcribe the samples.
+                    //
+                    // The actual engine call is synchronous/CPU-bound (native
+                    // Whisper/ONNX inference), so it runs on a blocking-pool
+                    // thread rather than inline here: inline, it would occupy
+                    // this task's async worker thread for the whole run,
+                    // starving other work (cancellation checks, overlay
+                    // updates) on a busy or emulated (Rosetta) CPU. The wait
+                    // is bounded by TRANSCRIPTION_TIMEOUT and responsive to
+                    // cancellation, so a wedged engine call surfaces an error
+                    // and releases the overlay instead of leaving it stuck on
+                    // "Processing" forever; the orphaned blocking thread is
+                    // simply left to finish and its result discarded.
                     let transcription_time = Instant::now();
                     let transcription_result = match tm.finalize_stream() {
                         // A finalized stream with usable text wins. An empty result
@@ -872,7 +890,44 @@ impl ShortcutAction for TranscribeAction {
                         // transcription of the same audio. A cancelled finalize is
                         // surfaced instead, so a cancel never starts a batch run.
                         Ok(Some(text)) if !text.trim().is_empty() => Ok(text),
-                        Ok(_) => tm.transcribe(samples),
+                        Ok(_) => {
+                            let tm_for_blocking = Arc::clone(&tm);
+                            let handle = tauri::async_runtime::spawn_blocking(move || {
+                                tm_for_blocking.transcribe(samples)
+                            });
+                            let rm_for_wait = Arc::clone(&rm);
+                            match complete_unless_cancelled(
+                                tokio::time::timeout(TRANSCRIPTION_TIMEOUT, handle),
+                                || rm_for_wait.was_cancelled_since(cancel_generation),
+                            )
+                            .await
+                            {
+                                None => {
+                                    debug!(
+                                        "Transcription operation cancelled while awaiting the transcribe worker"
+                                    );
+                                    tm.cancel_stream();
+                                    utils::hide_recording_overlay(&ah);
+                                    set_tray_state(&ah, TrayIconState::Idle);
+                                    return;
+                                }
+                                Some(Ok(join_result)) => join_result.unwrap_or_else(|join_err| {
+                                    Err(anyhow::anyhow!(
+                                        "Transcription worker panicked: {}",
+                                        join_err
+                                    ))
+                                }),
+                                Some(Err(_elapsed)) => {
+                                    warn!(
+                                        "Transcription timed out after {:?} without returning",
+                                        TRANSCRIPTION_TIMEOUT
+                                    );
+                                    Err(anyhow::anyhow!(
+                                        "Transcription timed out. Try a shorter recording or a faster model."
+                                    ))
+                                }
+                            }
+                        }
                         Err(err) => Err(err),
                     };
 
