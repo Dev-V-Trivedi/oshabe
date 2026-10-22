@@ -3,6 +3,7 @@
 use crate::meetings::store::{MeetingDetail, MeetingRow, MeetingSearchHit};
 use crate::meetings::{ActiveMeeting, MeetingManager};
 use std::sync::Arc;
+use std::time::Duration;
 use tauri::{AppHandle, Manager};
 
 fn manager(app: &AppHandle) -> Result<Arc<MeetingManager>, String> {
@@ -11,14 +12,30 @@ fn manager(app: &AppHandle) -> Result<Arc<MeetingManager>, String> {
         .ok_or_else(|| "Meeting notes are not available".to_string())
 }
 
+// Opening audio devices (`MeetingManager::start`) is internally bounded to
+// about 10s per track, so 30s leaves margin without masking a real hang.
+const MEETING_START_TIMEOUT: Duration = Duration::from_secs(30);
+// `MeetingManager::stop` joins the recording worker, which may still be
+// transcribing the last segment on a slow/CPU-only path. Generous enough
+// that a normal stop never trips it.
+const MEETING_STOP_TIMEOUT: Duration = Duration::from_secs(240);
+
 #[tauri::command]
 #[specta::specta]
 pub async fn meeting_start(app: AppHandle, title: Option<String>) -> Result<ActiveMeeting, String> {
     // Opening audio devices can block for seconds. Never do that on the UI thread.
     let mgr = manager(&app)?;
-    tauri::async_runtime::spawn_blocking(move || mgr.start(title))
-        .await
-        .map_err(|e| e.to_string())?
+    let handle = tauri::async_runtime::spawn_blocking(move || mgr.start(title));
+    match tokio::time::timeout(MEETING_START_TIMEOUT, handle).await {
+        Ok(join_result) => join_result.map_err(|e| e.to_string())?,
+        Err(_elapsed) => {
+            log::warn!(
+                "meeting_start timed out after {:?} without returning",
+                MEETING_START_TIMEOUT
+            );
+            Err("Starting the meeting recording timed out. Try again.".to_string())
+        }
+    }
 }
 
 #[tauri::command]
@@ -26,9 +43,17 @@ pub async fn meeting_start(app: AppHandle, title: Option<String>) -> Result<Acti
 pub async fn meeting_stop(app: AppHandle) -> Result<i64, String> {
     let mgr = manager(&app)?;
     let mgr_for_stop = Arc::clone(&mgr);
-    let id = tauri::async_runtime::spawn_blocking(move || mgr_for_stop.stop())
-        .await
-        .map_err(|e| e.to_string())??;
+    let handle = tauri::async_runtime::spawn_blocking(move || mgr_for_stop.stop());
+    let id = match tokio::time::timeout(MEETING_STOP_TIMEOUT, handle).await {
+        Ok(join_result) => join_result.map_err(|e| e.to_string())??,
+        Err(_elapsed) => {
+            log::warn!(
+                "meeting_stop timed out after {:?} without returning",
+                MEETING_STOP_TIMEOUT
+            );
+            return Err("Stopping the meeting recording timed out.".to_string());
+        }
+    };
     mgr.purge_expired();
     mgr.summarize_in_background(id);
     Ok(id)
