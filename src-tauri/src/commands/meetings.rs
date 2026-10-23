@@ -25,10 +25,24 @@ const MEETING_STOP_TIMEOUT: Duration = Duration::from_secs(240);
 pub async fn meeting_start(app: AppHandle, title: Option<String>) -> Result<ActiveMeeting, String> {
     // Opening audio devices can block for seconds. Never do that on the UI thread.
     let mgr = manager(&app)?;
+    let mgr_for_check = Arc::clone(&mgr);
     let handle = tauri::async_runtime::spawn_blocking(move || mgr.start(title));
     match tokio::time::timeout(MEETING_START_TIMEOUT, handle).await {
         Ok(join_result) => join_result.map_err(|e| e.to_string())?,
         Err(_elapsed) => {
+            // `mgr.start()` sets the active-meeting state and returns before
+            // this await resolves: on a machine where the meeting's own
+            // transcription saturates every CPU core, the async runtime can
+            // be starved long enough that this future isn't woken for tens
+            // of seconds after the blocking call already finished and
+            // succeeded. Treat that as success instead of a false failure.
+            if let Some(active) = mgr_for_check.active() {
+                log::warn!(
+                    "meeting_start await exceeded {:?}, but a meeting is active; reporting success",
+                    MEETING_START_TIMEOUT
+                );
+                return Ok(active);
+            }
             log::warn!(
                 "meeting_start timed out after {:?} without returning",
                 MEETING_START_TIMEOUT
